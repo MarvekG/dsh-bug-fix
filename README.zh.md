@@ -64,6 +64,16 @@ dsh plugin --profile web add .
 npm test
 ```
 
+### 1.7 多入口结构
+
+本包使用 DSH 的子路径入口。当前沙箱修复入口是：
+
+```text
+@MarvekG/dsh-bug-fix/sandbox-same-mode
+```
+
+它由 `cordis.patch.yml` 单独挂载。以后新增修复时，可以新增一个脚本、一个 `exports` 子路径和一个独立的 patch 行；每个入口拥有自己的 Cordis 生命周期，可以单独加载和卸载。
+
 ## 第二章：已解决的问题
 
 本章按问题分别记录修复内容。后续新增问题时，继续在本章增加独立小节。

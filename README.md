@@ -64,6 +64,16 @@ Run this from the plugin directory:
 npm test
 ```
 
+### 1.7 Multiple entrypoints
+
+This package uses DSH subpath entrypoints. The current sandbox fix is mounted as:
+
+```text
+@MarvekG/dsh-bug-fix/sandbox-same-mode
+```
+
+It is mounted independently by `cordis.patch.yml`. Future fixes can add one script, one `exports` subpath, and one patch row; each entrypoint then has its own Cordis lifecycle and can be loaded or unloaded independently.
+
 ## Chapter 2: Solved Problems
 
 This chapter records each fix separately. Add a new subsection here for every future DSH issue handled by this repository.

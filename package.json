@@ -3,9 +3,12 @@
   "version": "0.1.0",
   "description": "Out-of-tree DSH bug-fix and compatibility plugin collection",
   "type": "module",
-  "main": "index.js",
+  "exports": {
+    "./sandbox-same-mode": "./sandbox-same-mode.js",
+    "./package.json": "./package.json"
+  },
   "files": [
-    "index.js",
+    "sandbox-same-mode.js",
     "cordis.patch.yml",
     "README.md",
     "README.zh.md"

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { apply } from '../index.js'
+import { apply } from '../sandbox-same-mode.js'
 
 const ESCALATION_MODES = ['workspace-write', 'danger-full-access']
 
