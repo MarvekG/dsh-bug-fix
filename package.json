@@ -1,0 +1,26 @@
+{
+  "name": "@MarvekG/dsh-bug-fix",
+  "version": "0.1.0",
+  "description": "Out-of-tree DSH bug-fix and compatibility plugin collection",
+  "type": "module",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:MarvekG/dsh-bug-fix.git"
+  },
+  "license": "MIT"
+}
