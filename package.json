@@ -11,7 +11,8 @@
     "sandbox-same-mode.js",
     "cordis.patch.yml",
     "README.md",
-    "README.zh.md"
+    "README.zh.md",
+    "LICENSE"
   ],
   "dsh": {
     "bundle": {

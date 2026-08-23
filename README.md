@@ -1,5 +1,7 @@
 # @MarvekG/dsh-bug-fix
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 ## Chapter 1: Installation Guide
 
 ### 1.1 Install from GitHub
@@ -128,3 +130,11 @@ Real permission upgrades and every invalid input keep the original path:
 The plugin does not expand the workspace or change `workspaceRoot`, and it never grants extra access. The original call used `/home/wang/codes/Best-AI-Trader` as its `workdir`; if that directory is outside the current DSH workspace, the command may still be denied by the sandbox boundary after the duplicate-permission error is removed.
 
 Restart DSH Web after installing or updating this plugin so new preset-scoped tool definitions are registered through it. It cannot retroactively wrap tool definitions belonging to sessions that already existed before the plugin started.
+
+## Chapter 3: License and Friend Links
+
+This project is open source under the [MIT License](LICENSE).
+
+### Friend Links
+
+- [linux.do](https://linux.do/) — An open and friendly community for developers.

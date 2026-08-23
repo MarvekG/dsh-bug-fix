@@ -1,5 +1,7 @@
 # @MarvekG/dsh-bug-fix
 
+[![许可证：MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 ## 第一章：安装指南
 
 ### 1.1 从 GitHub 安装
@@ -128,3 +130,11 @@ sandbox escalation to "workspace-write" is not strictly wider than this call's c
 插件不会扩大工作区，也不会修改 `workspaceRoot`，更不会偷偷增加权限。上面的原始调用使用了 `/home/wang/codes/Best-AI-Trader` 作为 `workdir`；如果这个目录不在当前 DSH 工作区内，去掉重复权限报错后，命令仍可能因为沙箱工作区边界而被拒绝。
 
 安装或更新后应重启 DSH Web，使新的 preset-scoped 工具注册时经过本插件；它不会追溯包裹重启前已存在的 session 工具定义。
+
+## 第三章：许可证与友情链接
+
+本项目基于 [MIT 许可证](LICENSE) 开源。
+
+### 友情链接
+
+- [linux.do](https://linux.do/) — 开放、友好的开发者社区。
