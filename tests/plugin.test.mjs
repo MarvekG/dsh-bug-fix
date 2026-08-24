@@ -80,6 +80,30 @@ test('same-mode sandbox request is removed before the built-in tool executes', a
   runtime.dispose()
 })
 
+test('a lower-mode retry is removed when danger-full-access is already effective', async () => {
+  const calls = []
+  const tool = definition('write', sandboxProperties(), async args => {
+    calls.push(args)
+    return args
+  })
+  const runtime = harness([tool], 'danger-full-access')
+  const args = Object.freeze({
+    file_path: '/home/wang/codes/StickyProxy/plugin/internal/state/store.go',
+    content: 'x',
+    sandbox_permissions: 'workspace-write',
+    justification: 'write the requested plugin fix outside the workspace',
+  })
+
+  const result = await tool.execute(args, { agent: { session: { id: 'session-1' } } })
+
+  assert.deepEqual(result, {
+    file_path: '/home/wang/codes/StickyProxy/plugin/internal/state/store.go',
+    content: 'x',
+  })
+  assert.deepEqual(calls, [result])
+  runtime.dispose()
+})
+
 test('a wider request remains on the built-in approval path', async () => {
   const calls = []
   const tool = definition('bash', sandboxProperties(), async args => {

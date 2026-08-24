@@ -80,33 +80,30 @@ It is mounted independently by `cordis.patch.yml`. Future fixes can add one scri
 
 This chapter records each fix separately. Add a new subsection here for every future DSH issue handled by this repository.
 
-### 2.1 Same-mode sandbox permission requests
+### 2.1 Redundant sandbox permission requests
 
 #### The original error
 
-The original call ran `pwd` with these arguments:
+A retry carried these arguments after the session policy had already changed to `danger-full-access`:
 
 ```json
 {
-  "command": "pwd",
-  "description": "确认当前工作目录",
-  "timeoutMs": 10000,
-  "workdir": "/home/wang/codes/Best-AI-Trader",
-  "run_in_background": false,
+  "file_path": "/home/wang/codes/StickyProxy/plugin/internal/state/store.go",
+  "content": "x",
   "sandbox_permissions": "workspace-write",
-  "justification": "需要确认当前仓库路径以定位辩论会话和提示词文件。"
+  "justification": "write the requested plugin fix outside the workspace"
 }
 ```
 
-DSH rejected it before the command ran:
+DSH rejected it before the write ran:
 
 ```text
-sandbox escalation to "workspace-write" is not strictly wider than this call's current "workspace-write" mode
+sandbox escalation to "workspace-write" is not strictly wider than this call's current "danger-full-access" mode
 ```
 
 #### Why it happened
 
-The current permission was already `workspace-write`, and the requested permission was also `workspace-write`. This was not a request for more access; it was only a repeated declaration. DSH treated it as an invalid escalation request.
+Tool schemas advertise every possible escalation target because the effective policy is session-specific. A model can retain a retry instruction created under a narrower policy after the session has switched to the same or a wider mode. In the example, `workspace-write` is lower than the current `danger-full-access` policy, so the requested field does not add any capability and DSH correctly rejects it as a non-escalation.
 
 #### What the plugin changes
 
@@ -114,9 +111,9 @@ The plugin wraps a tool when it is **registered**, which covers both ordinary gl
 
 1. `sandbox_permissions` is a value explicitly advertised by that tool's schema enum;
 2. `justification` is a non-empty string; and
-3. the requested mode exactly equals the effective sandbox mode for this call and session.
+3. the requested mode is no wider than the effective sandbox mode for this call and session.
 
-This is only a repeated declaration, so it does not open an approval prompt or return the `not strictly wider` error.
+This is a redundant declaration, so it does not open an approval prompt or return the `not strictly wider` error.
 
 Real permission upgrades and every invalid input keep the original path:
 
@@ -127,7 +124,7 @@ Real permission upgrades and every invalid input keep the original path:
 
 #### What the plugin does not bypass
 
-The plugin does not expand the workspace or change `workspaceRoot`, and it never grants extra access. The original call used `/home/wang/codes/Best-AI-Trader` as its `workdir`; if that directory is outside the current DSH workspace, the command may still be denied by the sandbox boundary after the duplicate-permission error is removed.
+The plugin does not expand the workspace or change `workspaceRoot`, and it never grants extra access. A request run while the effective mode remains `workspace-write` can still be denied outside its workspace after the redundant escalation fields are removed.
 
 Restart DSH Web after installing or updating this plugin so new preset-scoped tool definitions are registered through it. It cannot retroactively wrap tool definitions belonging to sessions that already existed before the plugin started.
 
