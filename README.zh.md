@@ -80,33 +80,30 @@ npm test
 
 本章按问题分别记录修复内容。后续新增问题时，继续在本章增加独立小节。
 
-### 2.1 同等级沙箱权限请求
+### 2.1 冗余沙箱权限请求
 
 #### 原始报错
 
-当时执行的命令是 `pwd`，调用参数如下：
+session 权限已经切换为 `danger-full-access` 后，重试仍携带以下参数：
 
 ```json
 {
-  "command": "pwd",
-  "description": "确认当前工作目录",
-  "timeoutMs": 10000,
-  "workdir": "/home/wang/codes/Best-AI-Trader",
-  "run_in_background": false,
+  "file_path": "/home/wang/codes/StickyProxy/plugin/internal/state/store.go",
+  "content": "x",
   "sandbox_permissions": "workspace-write",
-  "justification": "需要确认当前仓库路径以定位辩论会话和提示词文件。"
+  "justification": "write the requested plugin fix outside the workspace"
 }
 ```
 
-DSH 在命令真正执行前报错：
+DSH 在写入真正执行前报错：
 
 ```text
-sandbox escalation to "workspace-write" is not strictly wider than this call's current "workspace-write" mode
+sandbox escalation to "workspace-write" is not strictly wider than this call's current "danger-full-access" mode
 ```
 
 #### 为什么会报错
 
-当时的当前权限已经是 `workspace-write`，请求的权限也是 `workspace-write`。这不是申请更高权限，只是重复声明同一个权限，但 DSH 把它当成了无效的“升级请求”。
+因为有效权限按 session 决定，工具 schema 会公开所有可能的升级目标。模型可能在较窄权限下收到重试指引，然后在 session 切换到相同或更宽权限后继续使用该参数。这个例子中，`workspace-write` 比当前的 `danger-full-access` 更窄，请求字段并没有增加能力，因此 DSH 正确地将它拒绝为非升级请求。
 
 #### 插件如何处理
 
@@ -114,9 +111,9 @@ sandbox escalation to "workspace-write" is not strictly wider than this call's c
 
 1. `sandbox_permissions` 是该工具 schema 明确公开的枚举值；
 2. `justification` 是非空字符串；
-3. 请求权限恰好等于当前调用、当前 session 的有效 sandbox 权限。
+3. 请求权限不宽于当前调用、当前 session 的有效 sandbox 权限。
 
-这时请求只是重复声明，因而不弹审批，也不再报 `not strictly wider`。
+此时请求只是冗余声明，因而不弹审批，也不再报 `not strictly wider`。
 
 真正的权限升级和所有非法输入仍然保持原来的流程：
 
@@ -127,7 +124,7 @@ sandbox escalation to "workspace-write" is not strictly wider than this call's c
 
 #### 插件不会绕过什么
 
-插件不会扩大工作区，也不会修改 `workspaceRoot`，更不会偷偷增加权限。上面的原始调用使用了 `/home/wang/codes/Best-AI-Trader` 作为 `workdir`；如果这个目录不在当前 DSH 工作区内，去掉重复权限报错后，命令仍可能因为沙箱工作区边界而被拒绝。
+插件不会扩大工作区，也不会修改 `workspaceRoot`，更不会偷偷增加权限。有效权限仍为 `workspace-write` 时，去掉冗余升级字段后，工作区外的请求仍可能因为沙箱工作区边界而被拒绝。
 
 安装或更新后应重启 DSH Web，使新的 preset-scoped 工具注册时经过本插件；它不会追溯包裹重启前已存在的 session 工具定义。
 

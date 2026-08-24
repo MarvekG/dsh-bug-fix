@@ -1,11 +1,16 @@
 const SANDBOX_PERMISSION = 'sandbox_permissions'
 const JUSTIFICATION = 'justification'
 const CORDIS_ORIGINAL = Symbol.for('cordis.original')
+const SANDBOX_MODE_RANK = new Map([
+  ['read-only', 0],
+  ['workspace-write', 1],
+  ['danger-full-access', 2],
+])
 
 /**
- * Treat a valid request for the call's already-effective sandbox mode as a
- * duplicate declaration. Wider requests and malformed/unknown pairs stay on
- * the built-in validation and approval path.
+ * Treat a valid request for the call's already-effective sandbox mode, or a
+ * narrower one, as a duplicate declaration. Wider requests and
+ * malformed/unknown pairs stay on the built-in validation and approval path.
  */
 export const name = 'dsh-bug-fix-sandbox-same-mode'
 
@@ -23,13 +28,14 @@ function escalationModes(definition) {
   return property.enum
 }
 
-function sameModeArguments(ctx, args, exec, modes) {
+function unnecessaryEscalationArguments(ctx, args, exec, modes) {
   if (!isRecord(args)) return args
 
   const requestedMode = args[SANDBOX_PERMISSION]
   const justification = args[JUSTIFICATION]
   // Retain the original schema's enum check and the built-in pairing/non-empty
-  // validation. Only an advertised, complete same-mode request is a no-op.
+  // validation. Only an advertised, complete request already covered by the
+  // standing policy is a no-op.
   if (typeof requestedMode !== 'string' || !modes.includes(requestedMode)
     || typeof justification !== 'string' || justification.trim().length === 0) {
     return args
@@ -40,7 +46,9 @@ function sameModeArguments(ctx, args, exec, modes) {
 
   const request = exec?.agent === undefined ? {} : { session: exec.agent.session }
   const effectiveMode = policy.resolve(request).mode
-  if (requestedMode !== effectiveMode) return args
+  const requestedRank = SANDBOX_MODE_RANK.get(requestedMode)
+  const effectiveRank = SANDBOX_MODE_RANK.get(effectiveMode)
+  if (requestedRank === undefined || effectiveRank === undefined || requestedRank > effectiveRank) return args
 
   const normalized = { ...args }
   delete normalized[SANDBOX_PERMISSION]
@@ -60,7 +68,7 @@ function patchDefinition(ctx, records, definition) {
   }
 
   const wrapped = async function executeWithSameModeCompatibility(args, exec) {
-    return original.call(this, sameModeArguments(ctx, args, exec, modes), exec)
+    return original.call(this, unnecessaryEscalationArguments(ctx, args, exec, modes), exec)
   }
   records.set(definition, { original, wrapped })
   definition.execute = wrapped
