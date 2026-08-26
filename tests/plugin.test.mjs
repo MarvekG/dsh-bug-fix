@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import vm from 'node:vm'
 import { apply } from '../sandbox-same-mode.js'
+import { _internals as pathViewer } from '../path-viewer.js'
 
 const ESCALATION_MODES = ['workspace-write', 'danger-full-access']
 
@@ -184,4 +186,55 @@ test('a scoped tool registered after plugin startup is wrapped and cleanup resto
   runtime.dispose()
   assert.strictEqual(tool.execute, original)
   assert.strictEqual(runtime.tools.register, runtime.originalRegister)
+})
+
+test('path viewer intercepts URL-based host open requests from the web API client', async () => {
+  const opened = []
+  const originalCalls = []
+  const context = {
+    URL,
+    Response,
+    window: {
+      fetch: (...args) => {
+        originalCalls.push(args)
+        return Promise.resolve(new Response('original'))
+      },
+      open: (...args) => {
+        opened.push(args)
+        return {}
+      },
+    },
+  }
+  vm.runInNewContext(pathViewer.interceptionScript(['host.openPath']), context)
+
+  const response = await context.window.fetch(new URL('http://127.0.0.1:3080/api/host.openPath'), {
+    method: 'POST',
+    body: JSON.stringify({
+      type: 'client-request', rpcId: 'path-viewer-url', method: 'host.openPath', payload: { path: '/tmp/example.txt' },
+    }),
+  })
+
+  assert.deepEqual(opened, [['/view?path=%2Ftmp%2Fexample.txt', '_blank']])
+  assert.deepEqual(originalCalls, [])
+  assert.deepEqual(await response.json(), {
+    type: 'server-response', rpcId: 'path-viewer-url', result: { ok: true, value: { opened: true } },
+  })
+})
+
+test('path viewer pages use the responsive code-viewer shell', () => {
+  const html = pathViewer.page('Example', '<p>content</p>')
+
+  assert.match(html, /<main class="shell"><p>content<\/p><\/main>/)
+  assert.match(html, /SOURCE FILE|DIRECTORY|CODE VIEWER|\.shell\{max-width:1600px/)
+  assert.match(html, /@media\(max-width:680px\)/)
+})
+
+test('path viewer applies syntax highlighting only to known source types', () => {
+  const highlighted = pathViewer.highlightCode('const answer = "ok"\n// note', '/tmp/example.js')
+  const plain = pathViewer.highlightCode('<b>safe</b>', '/tmp/example.txt')
+
+  assert.match(highlighted, /hljs-keyword/)
+  assert.match(highlighted, /hljs-string/)
+  assert.match(highlighted, /hljs-comment/)
+  assert.equal(plain, '&lt;b&gt;safe&lt;/b&gt;')
 })

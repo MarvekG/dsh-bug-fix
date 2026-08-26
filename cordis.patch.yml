@@ -1,3 +1,10 @@
 - insert:
-    - id: dsh-bug-fix-sandbox-same-mode
-      name: '@MarvekG/dsh-bug-fix/sandbox-same-mode'
+    - id: dsh-plugins-sandbox-same-mode
+      name: '@MarvekG/dsh-plugins/sandbox-same-mode'
+    - id: dsh-plugins-path-viewer
+      name: '@MarvekG/dsh-plugins/path-viewer'
+      config:
+        maxBytes: 4194304
+        intercept:
+          - host.openPath
+          - host.openTextFile

@@ -1,90 +1,102 @@
-# @MarvekG/dsh-bug-fix
+# @MarvekG/dsh-plugins
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![许可证：MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## Chapter 1: Installation Guide
+## 第一章：安装指南
 
-### 1.1 Install from GitHub
+> **⚠️ 从旧包名 `@MarvekG/dsh-bug-fix` 升级：必须先卸载再安装。**
+> 本包已更名为 `@MarvekG/dsh-plugins`，包名变了，不能走「更新」流程平滑切换（旧条目会残留在 profile 里）。请先执行：
+>
+> ```sh
+> dsh plugin --profile web remove @MarvekG/dsh-bug-fix
+> dsh plugin --profile web add github:MarvekG/dsh-plugins
+> dsh web
+> ```
+>
+> 卸载与重装之间**不要**重启 DSH Web，避免旧名缺失导致的装配告警。
 
-Install `dsh` first and make sure it runs correctly. By default, install the plugin from GitHub:
+### 1.1 从 GitHub 安装
+
+需要先安装并确认 `dsh` 可以正常运行。默认从 GitHub 安装：
 
 ```sh
-dsh plugin --profile web add github:MarvekG/dsh-bug-fix
+dsh plugin --profile web add github:MarvekG/dsh-plugins
 dsh web
 ```
 
-`web` is the DSH profile name. Replace it with another profile name when needed.
+这里的 `web` 是 DSH profile 名称。如果使用其他 profile，把 `web` 换成对应的 profile 名称。
 
-Restart DSH Web after installation for the plugin to take effect.
+安装后，重启 DSH Web 即可生效。
 
-### 1.2 Pin a version
+### 1.2 固定版本
 
-To use a fixed version instead of following the latest repository state, append a commit SHA:
+如果不想跟随仓库最新代码，可以在仓库地址后加 commit SHA：
 
 ```text
-github:MarvekG/dsh-bug-fix#<sha>
+github:MarvekG/dsh-plugins#<sha>
 ```
 
-### 1.3 Local debugging
+### 1.3 本地调试
 
-After cloning this repository, run the following from its root:
+克隆本仓库后，在仓库根目录执行：
 
 ```sh
 dsh plugin --profile web add .
 dsh web
 ```
 
-### 1.4 Uninstall
+### 1.4 卸载
 
-Remove the plugin from the `web` profile:
+从 `web` profile 移除插件：
 
 ```sh
-dsh plugin --profile web remove @MarvekG/dsh-bug-fix
+dsh plugin --profile web remove @MarvekG/dsh-plugins
 ```
 
-### 1.5 Update
+### 1.5 更新
 
-Update by removing the old version and installing the new one:
+更新时先移除旧版本，再安装新版本：
 
 ```sh
-dsh plugin --profile web remove @MarvekG/dsh-bug-fix
-dsh plugin --profile web add github:MarvekG/dsh-bug-fix
+dsh plugin --profile web remove @MarvekG/dsh-plugins
+dsh plugin --profile web add github:MarvekG/dsh-plugins
 dsh web
 ```
 
-For local debugging, replace the second command with:
+本地调试时，把第二条命令替换为：
 
 ```sh
 dsh plugin --profile web add .
 ```
 
-### 1.6 Run tests
+### 1.6 运行测试
 
-Run this from the plugin directory:
+在插件目录执行：
 
 ```sh
 npm test
 ```
 
-### 1.7 Multiple entrypoints
+### 1.7 多入口结构
 
-This package uses DSH subpath entrypoints. The current sandbox fix is mounted as:
+本包使用 DSH 的子路径入口。当前入口：
 
 ```text
-@MarvekG/dsh-bug-fix/sandbox-same-mode
+@MarvekG/dsh-plugins/sandbox-same-mode
+@MarvekG/dsh-plugins/path-viewer
 ```
 
-It is mounted independently by `cordis.patch.yml`. Future fixes can add one script, one `exports` subpath, and one patch row; each entrypoint then has its own Cordis lifecycle and can be loaded or unloaded independently.
+它由 `cordis.patch.yml` 单独挂载。以后新增修复时，可以新增一个脚本、一个 `exports` 子路径和一个独立的 patch 行；每个入口拥有自己的 Cordis 生命周期，可以单独加载和卸载。
 
-## Chapter 2: Solved Problems
+## 第二章：已解决的问题
 
-This chapter records each fix separately. Add a new subsection here for every future DSH issue handled by this repository.
+本章按问题分别记录修复内容。后续新增问题时，继续在本章增加独立小节。
 
-### 2.1 Redundant sandbox permission requests
+### 2.1 冗余沙箱权限请求
 
-#### The original error
+#### 原始报错
 
-A retry carried these arguments after the session policy had already changed to `danger-full-access`:
+session 权限已经切换为 `danger-full-access` 后，重试仍携带以下参数：
 
 ```json
 {
@@ -95,43 +107,66 @@ A retry carried these arguments after the session policy had already changed to 
 }
 ```
 
-DSH rejected it before the write ran:
+DSH 在写入真正执行前报错：
 
 ```text
 sandbox escalation to "workspace-write" is not strictly wider than this call's current "danger-full-access" mode
 ```
 
-#### Why it happened
+#### 为什么会报错
 
-Tool schemas advertise every possible escalation target because the effective policy is session-specific. A model can retain a retry instruction created under a narrower policy after the session has switched to the same or a wider mode. In the example, `workspace-write` is lower than the current `danger-full-access` policy, so the requested field does not add any capability and DSH correctly rejects it as a non-escalation.
+因为有效权限按 session 决定，工具 schema 会公开所有可能的升级目标。模型可能在较窄权限下收到重试指引，然后在 session 切换到相同或更宽权限后继续使用该参数。这个例子中，`workspace-write` 比当前的 `danger-full-access` 更窄，请求字段并没有增加能力，因此 DSH 正确地将它拒绝为非升级请求。
 
-#### What the plugin changes
+#### 插件如何处理
 
-The plugin wraps a tool when it is **registered**, which covers both ordinary global tools and the preset-scoped `bash`, `pwsh`, `write`, and `edit` tools used by DSH Web. It removes the escalation fields and runs in the standing mode only when all of these conditions hold:
+插件会在工具**注册时**包装其执行函数，因此同时覆盖普通全局工具和 DSH Web 的 preset-scoped `bash`、`pwsh`、`write`、`edit` 工具。它只会在以下条件同时满足时，把升级字段删除并按当前权限执行：
 
-1. `sandbox_permissions` is a value explicitly advertised by that tool's schema enum;
-2. `justification` is a non-empty string; and
-3. the requested mode is no wider than the effective sandbox mode for this call and session.
+1. `sandbox_permissions` 是该工具 schema 明确公开的枚举值；
+2. `justification` 是非空字符串；
+3. 请求权限不宽于当前调用、当前 session 的有效 sandbox 权限。
 
-This is a redundant declaration, so it does not open an approval prompt or return the `not strictly wider` error.
+此时请求只是冗余声明，因而不弹审批，也不再报 `not strictly wider`。
 
-Real permission upgrades and every invalid input keep the original path:
+真正的权限升级和所有非法输入仍然保持原来的流程：
 
-- `read-only` → a wider mode: approval is still required;
-- `workspace-write` → `danger-full-access`: approval is still required;
-- Missing, blank, or incomplete justification: the original validation error remains;
-- A permission value not advertised by the tool schema, including a fabricated same-mode value, remains subject to DSH's original schema validation.
+- `read-only` → 更高权限：继续申请审批；
+- `workspace-write` → `danger-full-access`：继续申请审批；
+- 缺少说明、说明为空或参数不完整：继续报错；
+- 未被工具 schema 公开的权限值（包括伪造的同级值）：仍由 DSH 原始参数校验拒绝。
 
-#### What the plugin does not bypass
+#### 插件不会绕过什么
 
-The plugin does not expand the workspace or change `workspaceRoot`, and it never grants extra access. A request run while the effective mode remains `workspace-write` can still be denied outside its workspace after the redundant escalation fields are removed.
+插件不会扩大工作区，也不会修改 `workspaceRoot`，更不会偷偷增加权限。有效权限仍为 `workspace-write` 时，去掉冗余升级字段后，工作区外的请求仍可能因为沙箱工作区边界而被拒绝。
 
-Restart DSH Web after installing or updating this plugin so new preset-scoped tool definitions are registered through it. It cannot retroactively wrap tool definitions belonging to sessions that already existed before the plugin started.
+安装或更新后应重启 DSH Web，使新的 preset-scoped 工具注册时经过本插件；它不会追溯包裹重启前已存在的 session 工具定义。
 
-## Chapter 3: License and Friend Links
+### 2.2 点击路径改为弹出网页查看器
 
-This project is open source under the [MIT License](LICENSE).
+#### 原始报错
 
-### Friend Links
+在 DSH Web 里点击文件路径时报：
 
-- [linux.do](https://linux.do/) — An open and friendly community for developers.
+```text
+path open failed: path open failed: spawn powershell.exe ENOENT
+```
+
+#### 为什么会报错
+
+WSL 下 DSH 通过 `powershell.exe` 把路径交给 Windows 桌面打开。`/etc/wsl.conf` 配置了 `[interop] appendWindowsPath = false` 时，Windows 目录不会追加进 `PATH`，裸命令名 spawn 直接 `ENOENT`。而且「从 WSL 唤起 Windows 桌面」本就脆弱——GUI 本身就跑在 Windows 浏览器里。
+
+#### 插件如何处理
+
+新增 `dsh-plugins-path-viewer` 条目（`cordis.patch.yml` 单独挂载），把原生打开换成纯浏览器方案：
+
+1. 在同一个 web 服务上注册带回环围栏的 `GET /view?path=<绝对路径>[&line=N]`：文件渲染为行号表格（HTML 转义、tab=4、超 4 MiB 截断横幅、二进制识别不渲染），目录渲染为可继续点击进入的列表页。
+2. 通过 `webserver/index-inject` 向 GUI 页面注入一段 head 脚本：拦截发往 `/api/host.openPath`、`/api/host.openTextFile` 的 RPC，改用 `window.open('/view?path=…')` 在新标签页展示，并按线上封包形状伪造成功应答（`{type:'server-response',rpcId,result:{ok:true,value:{opened:true}}}`）；若新标签页被浏览器拦截，自动放行原始请求。常见源码由 `highlight.js` 做语法高亮，未知扩展名安全地按纯文本展示。
+
+全程不 spawn 任何 Windows 进程。配置项：`maxBytes`（单次渲染字节上限）与 `intercept`（改道的 RPC 方法列表）。安装或更新后重启 DSH Web 生效。
+
+## 第三章：许可证与友情链接
+
+本项目基于 [MIT 许可证](LICENSE) 开源。
+
+### 友情链接
+
+- [linux.do](https://linux.do/) — 开放、友好的开发者社区。
