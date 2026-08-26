@@ -1,17 +1,19 @@
 {
-  "name": "@MarvekG/dsh-bug-fix",
+  "name": "@MarvekG/dsh-plugins",
   "version": "0.1.0",
-  "description": "Out-of-tree DSH bug-fix and compatibility plugin collection",
+  "description": "Out-of-tree DSH plugin collection (compatibility fixes and enhancements)",
   "type": "module",
   "exports": {
     "./sandbox-same-mode": "./sandbox-same-mode.js",
+    "./path-viewer": "./path-viewer.js",
     "./package.json": "./package.json"
   },
   "files": [
     "sandbox-same-mode.js",
+    "path-viewer.js",
     "cordis.patch.yml",
     "README.md",
-    "README.zh.md",
+    "README.en.md",
     "LICENSE"
   ],
   "dsh": {
@@ -24,7 +26,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:MarvekG/dsh-bug-fix.git"
+    "url": "git@github.com:MarvekG/dsh-plugins.git"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "highlight.js": "^11.12.0"
+  }
 }

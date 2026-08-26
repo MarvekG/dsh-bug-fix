@@ -12,7 +12,7 @@ const SANDBOX_MODE_RANK = new Map([
  * narrower one, as a duplicate declaration. Wider requests and
  * malformed/unknown pairs stay on the built-in validation and approval path.
  */
-export const name = 'dsh-bug-fix-sandbox-same-mode'
+export const name = 'dsh-plugins-sandbox-same-mode'
 
 /** The tool registry must exist before definitions can be wrapped. */
 export const inject = ['tools']
@@ -64,7 +64,7 @@ function patchDefinition(ctx, records, definition) {
 
   const original = definition.execute
   if (typeof original !== 'function') {
-    throw new Error(`dsh-bug-fix-sandbox-same-mode: tool "${definition.name}" has no execute function`)
+    throw new Error(`dsh-plugins-sandbox-same-mode: tool "${definition.name}" has no execute function`)
   }
 
   const wrapped = async function executeWithSameModeCompatibility(args, exec) {
@@ -117,5 +117,5 @@ export function apply(ctx) {
       if (definition.execute === record.wrapped) definition.execute = record.original
     }
     records.clear()
-  }, 'dsh-bug-fix-sandbox-same-mode: restore tool definitions')
+  }, 'dsh-plugins-sandbox-same-mode: restore tool definitions')
 }
